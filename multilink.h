@@ -1,6 +1,7 @@
 #ifndef __MULTILINK_H__
 #define __MULTILINK_H__
 
+#include <libio.h>
 #include <linux/if.h>
 
 #define SIZEOF_ARRAY(arr)        (sizeof(arr) / sizeof(arr[0]))
@@ -16,15 +17,23 @@ typedef struct modem_if_info_t {
     char src[32];
     char dst[32];
     char nexthop[32];
+    char rulegate[32];
+    char active;
 } modem_if_info;
 
 
-modem_if_info hosts[] = 
-{
-    {"usb0", 0x100, "192.168.1.10", "192.168.1.0/24", "dev usb0" },
-    {"usb1", 0x200, "192.168.2.10", "192.168.2.0/24", "dev usb1" },
-    {"usb2", 0x300, "192.168.3.10", "192.168.3.0/24", "dev usb2" },
-};
+typedef struct gateway_info_t {
+    char ifname[IFNAMSIZ];
+    char gate_addr[32];
+    char weight;
+    char used;
+} gateway_info;
 
+extern modem_if_info hosts[];
+extern gateway_info gates[];
+extern char* const tid_string[];
+extern int get_hosts_len(void);
+extern int get_gates_len(void);
 
-#endif 
+#endif
+
