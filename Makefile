@@ -2,7 +2,7 @@ DIR = $(shell pwd)
 
 PROGRAM=multilink
 
-obj-y += multilink.o ml_netlink.o
+obj-y += multilink.o ml_netlink.o ml_parse.o
 
 MULTILINK_DEBUG=0
 
@@ -12,7 +12,7 @@ else
 	CFLAGS += -g -O2 -Wall -Werror -DMODEM_ENVIRONMENT
 endif
 
-LIBS += -lnl-3 -lnl-route-3 -lnl-cli-3
+LIBS += -lnl-3 -lnl-route-3 -lnl-cli-3 -lyaml
 #CFLAGS += -I/usr/include/libnl3
 #LIBS_INCLUDE += -L./  -L/usr/lib/x86_64-linux-gnu/
 

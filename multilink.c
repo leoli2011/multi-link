@@ -14,6 +14,7 @@
 #include <getopt.h>
 #include "multilink.h"
 #include "ml_netlink.h"
+#include "ml_parse.h"
 
 static const char *confname = "/etc/multilink.conf";
 //static const char *confname = "/tmp/multilink.conf";
@@ -83,8 +84,7 @@ char* const tid_string[] = {
 
 
 //TODO: for main
-//1, add configuration parser
-//2, add the multi-thread function
+//1, add the multi-thread function
 int main(int argc, char **argv)
 {
     int rc = -1;
@@ -129,6 +129,8 @@ int main(int argc, char **argv)
         log_error(LOG_ERR, "Unable to open config file");
         return EXIT_FAILURE;
     }
+
+    parse_conf(f);
 
     if (pidfile) {
         f = fopen(pidfile, "w");
