@@ -1,0 +1,42 @@
+We have two tools in this directory to testing the multi-link scheduling policy.
+
+The one named modem_client.sh, which used to send huge of connections to outside
+server through multiple modems. The default value of connection numbers is 1000.
+
+The one named ml_count, which used to count the connection numbers for every modem.
+
+Here are the steps:
+1, running the modem_client.sh
+
+mmu:/vendor/bin # sh client.sh
+Connection to 47.92.141.202 50001 port [tcp/*] succeeded!
+Connection to 47.92.141.202 50003 port [tcp/*] succeeded!
+Connection to 47.92.141.202 50009 port [tcp/*] succeeded!
+Connection to 47.92.141.202 50004 port [tcp/*] succeeded!
+Connection to 47.92.141.202 50012 port [tcp/*] succeeded!
+Connection to 47.92.141.202 50014 port [tcp/*] succeeded!
+Connection to 47.92.141.202 50000 port [tcp/*] succeeded!
+Connection to 47.92.141.202 50002 port [tcp/*] succeeded!
+.........
+.........
+.........
+Connection to 47.92.141.202 50992 port [tcp/*] succeeded!
+Connection to 47.92.141.202 50993 port [tcp/*] succeeded!
+Connection to 47.92.141.202 50991 port [tcp/*] succeeded!
+Connection to 47.92.141.202 50994 port [tcp/*] succeeded!
+Connection to 47.92.141.202 50995 port [tcp/*] succeeded!
+Connection to 47.92.141.202 50996 port [tcp/*] succeeded!
+Connection to 47.92.141.202 50997 port [tcp/*] succeeded!
+Connection to 47.92.141.202 51000 port [tcp/*] succeeded!
+Connection to 47.92.141.202 50999 port [tcp/*] succeeded!
+
+2, Count the number of connections for each modem interface
+
+mmu:/vendor/bin # ./ml_count
+Modem1=348, Modem2=328, Modem3=321
+
+3, Check the output of the step two, if the number of connections
+for every interface have similar value means the feature works fine.
+
+TIPS:
+Any questions or comments, mail to cn-lei.li@ff.com.

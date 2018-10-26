@@ -2,6 +2,7 @@
 #include <syslog.h>
 #include <yaml.h>
 #include "ml_parse.h"
+#include "multilink.h"
 
 struct global_config g_conf[] =  {
     {.name = "config-version"},
@@ -16,6 +17,60 @@ struct app_list app_lists[] = {
 };
 
 free_app_info_t app_info[10];
+wan_if_t wan_if_list[10];
+
+int parse_interface_info(yaml_parser_t *parser, wan_if_t *wif)
+{
+    yaml_token_t  token;
+    char *datap = NULL;
+    int state = 0;
+    int i = 0;
+
+    do {
+        yaml_parser_scan(parser, &token);
+        switch(token.type)
+        {
+
+        case YAML_KEY_TOKEN:
+            state = 0;
+            break;
+        case YAML_VALUE_TOKEN:
+            state = 1;
+            break;
+
+        case YAML_BLOCK_END_TOKEN:
+            wif++;
+            i++;
+            break;
+
+        case YAML_SCALAR_TOKEN: {
+            char *tk = (char *)token.data.scalar.value;
+            int len = 0;
+            if (state == 0) {
+                if (strcmp(tk, "ifname") == 0) {
+                    datap = wif->ifname;
+                } else if (strcmp(tk, "table") == 0) {
+                    datap = wif->table;
+                } else if (strcmp(tk, "weight") == 0) {
+                    datap = wif->weight;
+                }
+            } else if (state == 1) {
+                snprintf(datap, 20, "%s", tk);
+            }
+            break;
+
+        }
+        default:
+          printf("Got token of type %d\n", token.type);
+          break;
+        }
+        if(token.type != YAML_BLOCK_END_TOKEN)
+          yaml_token_delete(&token);
+    } while(i < get_wan_cnt());
+          yaml_token_delete(&token);
+
+    return 0;
+}
 
 int parse_conf(FILE *f)
 {
@@ -29,11 +84,15 @@ int parse_conf(FILE *f)
     yaml_parser_t parser;
     yaml_token_t  token;
 
-    if(!yaml_parser_initialize(&parser))
+    if (!yaml_parser_initialize(&parser)) {
         syslog(LOG_ERR, "Failed to initialize parser!\n");
+        return -1;
+    }
 
-    if(fh == NULL)
+    if (fh == NULL) {
         syslog(LOG_ERR, "Failed to open file!\n");
+        return -1;
+    }
 
     yaml_parser_set_input_file(&parser, fh);
 
@@ -43,30 +102,22 @@ int parse_conf(FILE *f)
         {
 
             case YAML_STREAM_START_TOKEN:
-                syslog(LOG_DEBUG, "STREAM START");
-                break;
-
             case YAML_STREAM_END_TOKEN:
-                syslog(LOG_NOTICE, "STREAM END");
                 break;
 
             case YAML_KEY_TOKEN:
-                syslog(LOG_NOTICE, "(Key token)   ");
                 expect_token = 1;
                 break;
 
             case YAML_VALUE_TOKEN:
                 expect_value = 1;
-                syslog(LOG_NOTICE, "(Value token) ");
                 break;
 
             case YAML_BLOCK_SEQUENCE_START_TOKEN:
-                syslog(LOG_NOTICE, "<b>Start Block (Sequence)</b>");
                 level = 1;
                 break;
 
             case YAML_BLOCK_ENTRY_TOKEN:
-                syslog(LOG_NOTICE, "<b>Start Block (Entry)</b>");
                 app_index++;
                 break;
 
@@ -77,18 +128,25 @@ int parse_conf(FILE *f)
                     strncpy(app_info[app_index].port, app_lists[2].value, sizeof(app_info[app_index].ip));
                 }
 
-                syslog(LOG_NOTICE, "<b>End block</b>");
                 break;
 
             case YAML_BLOCK_MAPPING_START_TOKEN:
-                syslog(LOG_NOTICE, "[Block mapping]");
                 break;
 
             case YAML_SCALAR_TOKEN:
-                syslog(LOG_NOTICE, "scalar %s \n", token.data.scalar.value);
-                tk = token.data.scalar.value;
+                tk = (char *)token.data.scalar.value;
+                if (strcmp(tk, "WAN-interface") == 0) {
+                    parse_interface_info(&parser, &wan_if_list[0]);
+                    for (int i = 0; i < get_wan_cnt(); i++) {
+                        syslog(LOG_NOTICE, "wif name=%s, table=%s, weight %s \n",
+                                wan_if_list[i].ifname, wan_if_list[i].table, wan_if_list[i].weight);
+                    }
+
+                    break;
+                }
+
                 if (level == 0 && expect_token == 1) {
-                    for (int i = 0; i < sizeof(g_conf)/sizeof(g_conf[0]); i++) {
+                    for (unsigned int i = 0; i < sizeof(g_conf)/sizeof(g_conf[0]); i++) {
                         if (strcmp(tk, g_conf[i].name) == 0) {
                             store_value = g_conf[i].value;
                         }
@@ -103,7 +161,7 @@ int parse_conf(FILE *f)
                     expect_value = 0;
                     store_value = NULL;
                 } else if (level == 1 && expect_token == 1) {
-                    for (int i = 0; i < sizeof(app_lists)/sizeof(app_lists[0]); i++) {
+                    for (unsigned int i = 0; i < sizeof(app_lists)/sizeof(app_lists[0]); i++) {
                         if (strcmp(tk, app_lists[i].name) == 0) {
                             store_value = app_lists[i].value;
                             syslog(LOG_NOTICE, "level=%d app_lists[%d].name=%s, store_value=%s \n",
@@ -124,11 +182,7 @@ int parse_conf(FILE *f)
                 break;
 
             case YAML_DOCUMENT_START_TOKEN:
-                syslog(LOG_NOTICE, "[Start Document]");
-                break;
-
             case YAML_DOCUMENT_END_TOKEN:
-                syslog(LOG_NOTICE, "[End document]");
                 break;
 
             default:
@@ -142,7 +196,7 @@ int parse_conf(FILE *f)
 
     yaml_parser_delete(&parser);
 
-    for (int i = 0; i < sizeof(g_conf)/sizeof(g_conf[0]); i++) {
+    for (unsigned int i = 0; i < sizeof(g_conf)/sizeof(g_conf[0]); i++) {
         syslog(LOG_NOTICE, "g_conf name =%s value=%s\n", g_conf[i].name, g_conf[i].value);
     }
 

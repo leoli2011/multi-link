@@ -1,0 +1,6 @@
+service multilink /vendor/bin/multilink -c /vendor/etc/multilink.conf -p /data/multilink.pid
+    class main
+    user root system
+    group root inet system log
+    oneshot
+
